@@ -1,0 +1,313 @@
+/* ===================================================================
+   THEME TOKENS — edit ONLY this :root block to re-theme the whole deck.
+   Every layout and component reads these variables, so changing the
+   values here recolors everything (including the navigation dock).
+   The values below are a "dark product" default — REPLACE them to match
+   the brief or the brand (see the skill's style gallery + brand steps).
+   =================================================================== */
+:root {
+  /* Surfaces */
+  --bg:        #05070a;                    /* page background */
+  --bg-grad-1: rgba(79, 229, 176, 0.12);   /* spotlight tint, top */
+  --bg-grad-2: rgba(41, 192, 240, 0.08);   /* spotlight tint, bottom */
+  --surface:   rgba(255, 255, 255, 0.045); /* card fill */
+  --surface-2: rgba(255, 255, 255, 0.07);  /* card hover / elevated */
+
+  /* Ink */
+  --fg:       #f4f7fa;   /* primary text */
+  --fg-muted: #9aa4b2;   /* secondary text / body */
+  --fg-faint: #626d7d;   /* kickers, captions, meta */
+
+  /* Hairlines */
+  --hair:   rgba(255, 255, 255, 0.10);
+  --hair-2: rgba(255, 255, 255, 0.06);
+
+  /* Accent — ONE accent. May be a 2–4 stop gradient within ~80° of hue. */
+  --primary:    #4fe5b0;   /* solid accent — used by the dock active state */
+  --accent:     linear-gradient(115deg, #c8f56e 0%, #5aeeb0 42%, #34dcd8 74%, #29c0f0 100%);
+  --accent-ink: #04140e;   /* readable text color ON the accent */
+
+  /* Radius */
+  --radius:    22px;
+  --radius-sm: 12px;
+  --radius-lg: 26px;
+
+  /* Depth */
+  --shadow: 0 50px 120px -50px rgba(0,0,0,0.9);
+  --glow:   0 30px 80px -40px rgba(79, 229, 176, 0.5);
+
+  /* Type */
+  --font-head: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Motion */
+  --dur:        0.4s;
+  --ease:       cubic-bezier(0.32, 0.72, 0, 1);   /* general easing */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);    /* soft overshoot for entrances */
+
+  /* Atmosphere — the depth layers that make a slide feel three-dimensional.
+     Lower --grain/--vignette toward 0 on light decks if they read as dirty. */
+  --grain:    0.035;                  /* film-grain intensity (0 disables) */
+  --vignette: rgba(0, 0, 0, 0.22);    /* edge darkening for depth */
+
+  /* Safe area — the consistent margin EVERY slide's content sits inside, like a
+     website's container. Keeping all layouts on one gutter is what makes left
+     edges line up slide-to-slide. The canvas is a FIXED 1080×607 that clips. */
+  --gutter:   100px;                  /* horizontal safe margin */
+  --gutter-y: 60px;                   /* vertical safe margin */
+
+  /* Slidev hooks */
+  --slidev-slide-container-background: var(--bg);
+  --slidev-theme-primary: var(--primary);
+}
+
+/* For a LIGHT deck, switch to: html { color-scheme: light; } and set light values above. */
+html { color-scheme: dark; }
+
+/* ── Base ───────────────────────────────────────────────────────────
+   NOTE: the default Slidev theme sets `.slidev-layout { display:grid }`,
+   so every custom layout below is scoped as `.slidev-layout.<name>` to
+   out-specify it. Keep that prefix or centering/sizing will break. */
+#slide-content, .slidev-slide-content, .slidev-layout { background: var(--bg); }
+
+.slidev-layout {
+  color: var(--fg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "ss01" 1;
+  letter-spacing: -0.011em;
+  padding: 0;
+  height: 100%;
+}
+.slidev-layout h1, .slidev-layout h2, .slidev-layout h3 {
+  font-family: var(--font-head);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.04;
+  color: var(--fg);
+}
+.slidev-layout p { line-height: 1.4; margin: 0; }
+.slidev-layout strong { font-weight: 600; color: var(--fg); }
+.slidev-layout em { font-style: normal; color: var(--fg); }
+
+/* ── Atmosphere — every .stage slide gets a layered, living depth field ──
+   Layer 1 (::before): two soft accent spotlights that slowly drift, so the
+   background is never dead-flat. Layer 2 (::after): fine film grain over the
+   whole slide. Plus a static inset vignette for edge depth. This is most of
+   what separates a "premium" slide from a flat one — and it's automatic. */
+.stage { position: relative; width: 100%; height: 100%; overflow: hidden; box-shadow: inset 0 0 220px 50px var(--vignette); }
+.stage::before {
+  content: ""; position: absolute; inset: -15%; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(44% 50% at 24% 16%, var(--bg-grad-1), transparent 60%),
+    radial-gradient(50% 56% at 82% 88%, var(--bg-grad-2), transparent 62%);
+  animation: stageDrift 26s var(--ease) infinite alternate;
+}
+@keyframes stageDrift {
+  0%   { transform: translate3d(-2%, -1%, 0) scale(1.06); }
+  100% { transform: translate3d(3%,  2%,  0) scale(1.14); }
+}
+.stage::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  opacity: var(--grain); mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.stage > * { position: relative; z-index: 1; }
+
+/* ── Safe area & auto-fit — never let content fall out of the frame ──
+   The slide is a fixed 1080×607 box that CLIPS overflow. `.safe` is the
+   consistent content inset for hand-composed (layout: default) slides, so
+   they align with the built-in layouts. The <Fit> component scales its
+   content down to fit this frame when it would otherwise overflow. */
+.safe { position: absolute; inset: var(--gutter-y) var(--gutter); display: flex; flex-direction: column; }
+.safe.center { justify-content: center; }
+.safe.end { justify-content: flex-end; }
+.fit { width: 100%; height: 100%; box-sizing: border-box; padding: var(--gutter-y) var(--gutter); display: flex; overflow: hidden; }
+.fit.center { align-items: center; justify-content: center; }
+.fit.top { align-items: flex-start; justify-content: flex-start; }
+.fit-inner { flex: none; transform-origin: center top; will-change: transform; }
+.fit.center .fit-inner { transform-origin: center center; }
+
+/* ── Shared text atoms ──────────────────────────────────────────── */
+.kicker { font-size: 15px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-faint); }
+.subhead { font-size: 24px; font-weight: 400; color: var(--fg-muted); letter-spacing: -0.01em; max-width: 26ch; line-height: 1.35; }
+.foot { font-size: 15px; color: var(--fg-faint); }
+.accent-text { background: var(--accent); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.wordmark {
+  font-weight: 600; letter-spacing: -0.04em; line-height: 0.95; font-size: 116px; margin: 0.04em 0 0.08em;
+  background: var(--accent); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.figure {
+  font-size: 158px; font-weight: 600; line-height: 0.9; letter-spacing: -0.05em; font-feature-settings: "tnum" 1;
+  background: var(--accent); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* ── Layout: COVER / closing ────────────────────────────────────── */
+.slidev-layout.cover { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; }
+.slidev-layout.cover .kicker { margin-bottom: 4px; }
+.slidev-layout.cover.is-closing .wordmark { font-size: 96px; }
+
+/* ── Layout: STATEMENT ──────────────────────────────────────────── */
+.slidev-layout.statement { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 var(--gutter); gap: 20px; }
+.slidev-layout.statement h1 { font-size: 60px; line-height: 1.04; letter-spacing: -0.03em; max-width: 18ch; }
+.slidev-layout.statement .subhead { font-size: 27px; max-width: 28ch; }
+.slidev-layout.statement.is-stat { gap: 12px; }
+
+/* ── Layout: LEAD ───────────────────────────────────────────────── */
+.slidev-layout.lead { display: flex; flex-direction: column; justify-content: center; padding: 0 var(--gutter); gap: 24px; }
+.slidev-layout.lead h1 { font-size: 54px; line-height: 1.05; letter-spacing: -0.03em; max-width: 18ch; }
+.slidev-layout.lead p { font-size: 23px; color: var(--fg-muted); max-width: 42ch; line-height: 1.45; }
+
+/* ── Layout: FEATURE (text + visual) ────────────────────────────── */
+.slidev-layout.feature { display: grid; grid-template-columns: 1.02fr 1fr; align-items: center; gap: 64px; padding: 0 0 0 var(--gutter); height: 100%; }
+.slidev-layout.feature .feature-text { display: flex; flex-direction: column; gap: 20px; }
+.slidev-layout.feature h1 { font-size: 46px; line-height: 1.05; letter-spacing: -0.03em; max-width: 14ch; }
+.slidev-layout.feature p { font-size: 21px; color: var(--fg-muted); max-width: 36ch; line-height: 1.45; }
+.slidev-layout.feature .feature-visual { height: 100%; display: flex; align-items: center; justify-content: center; padding-right: 80px; }
+
+/* ── Layout: GRID (title + card row) ────────────────────────────── */
+.slidev-layout.grid { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 var(--gutter); gap: 48px; }
+.slidev-layout.grid .grid-title { font-size: 44px; font-weight: 600; letter-spacing: -0.03em; text-align: center; }
+/* Dense card rows (pricing) need a tighter title + gap so nothing clips the 607px-tall canvas */
+.slidev-layout.grid:has(.tiers) { gap: 28px; padding: 0 72px; }
+.slidev-layout.grid:has(.tiers) .grid-title { font-size: 36px; }
+.pillars, .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; width: 100%; }
+.tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; width: 100%; align-items: stretch; }
+
+/* ── Layout: QUOTE ──────────────────────────────────────────────── */
+.slidev-layout.quote { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 150px; gap: 14px; }
+.slidev-layout.quote blockquote { border: none; margin: 0; padding: 0; font-size: 42px; font-weight: 500; letter-spacing: -0.025em; line-height: 1.2; color: var(--fg); max-width: 24ch; quotes: none; background: none; }
+.slidev-layout.quote blockquote p { margin: 0; }
+.slidev-layout.quote cite { font-style: normal; font-size: 18px; color: var(--fg-faint); margin-top: 18px; }
+.slidev-layout.quote .quote-mark { font-size: 100px; line-height: 0.4; font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   WEB-SECTION COMPOSITION — the antidote to "slideware".
+   Compose a slide like a section of a best-in-class landing page
+   (Linear / Vercel / Stripe / Apple): full-bleed, asymmetric, layered.
+   These are the DEFAULT for content slides; the centered layouts above
+   (cover/statement/quote) are punctuation, not the workhorse.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Layout: BENTO — an asymmetric tile grid (the modern-web signature)
+   A 12-col grid; tiles span columns/rows for a deliberately uneven layout.
+   Drop <div class="bento"> with .btile children inside the slot. Spans via
+   inline style="grid-column:span 5;grid-row:span 2" or the .hero helper. */
+.slidev-layout.bento-stage { display: flex; flex-direction: column; padding: var(--gutter-y) var(--gutter); gap: 22px; }
+.bento-head { display: flex; flex-direction: column; gap: 9px; }
+.bento-head .bento-title { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; max-width: 22ch; }
+.bento-body { flex: 1; min-height: 0; }
+.bento { display: grid; grid-template-columns: repeat(12, 1fr); grid-auto-rows: 1fr; gap: 14px; width: 100%; height: 100%; }
+.btile {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 14px;
+  padding: 24px 26px; border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--hair);
+  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.btile:hover { border-color: color-mix(in srgb, var(--primary) 32%, transparent); transform: translateY(-3px); }
+.btile.hero { grid-column: span 5; grid-row: span 2; }
+.btile.accent { background: var(--accent); border-color: transparent; }
+.btile.accent .btile-fig, .btile.accent h3, .btile.accent p { color: var(--accent-ink); -webkit-text-fill-color: var(--accent-ink); }
+.btile.accent .btile-k, .btile.accent .btile-cap { color: color-mix(in srgb, var(--accent-ink) 72%, transparent); }
+.btile.glow { box-shadow: var(--glow); border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
+.btile-k { font-size: 12.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-faint); }
+.btile-fig { font-size: 60px; font-weight: 600; letter-spacing: -0.045em; line-height: 0.92; font-feature-settings: "tnum" 1; color: var(--fg); }
+.btile-fig.grad { background: var(--accent); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.btile h3 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: var(--fg); }
+.btile-cap, .btile p { font-size: 15px; color: var(--fg-muted); line-height: 1.4; }
+
+/* ── Layout: SPLIT — a full-bleed feature section: edge-to-edge media on
+   one side, content on the other. NOT the floating `feature` visual — the
+   media bleeds to the slide edge, the way a real web section does.
+   ::media:: slot = the bleed panel (image / color block / .vframe).
+   frontmatter `flip: true` puts the media on the left. */
+.slidev-layout.split { display: grid; grid-template-columns: 1.05fr 1fr; height: 100%; padding: 0; }
+.split-body { display: flex; flex-direction: column; justify-content: center; gap: 20px; padding: 0 64px 0 var(--gutter); }
+.split-body h1 { font-size: 50px; line-height: 1.05; letter-spacing: -0.03em; max-width: 15ch; }
+.split-body p { font-size: 22px; color: var(--fg-muted); max-width: 36ch; line-height: 1.45; }
+.split-media { position: relative; overflow: hidden; }
+.split-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.slidev-layout.split.flip .split-media { order: -1; }
+.slidev-layout.split.flip .split-body { padding: 0 var(--gutter) 0 64px; }
+
+/* ── Layered composition helpers (for hand-built sections, layout: default)
+   The luxury decks already win by composing full-bleed with absolute
+   positioning + Uno utilities — these generalize that to any direction. */
+.panel { position: absolute; inset: 0; }                  /* full-bleed color/gradient/image block */
+.ghost {                                                  /* oversized faint type behind content */
+  position: absolute; font-family: var(--font-head); font-weight: 700;
+  letter-spacing: -0.05em; line-height: 0.78; color: var(--fg); opacity: 0.05;
+  pointer-events: none; user-select: none; white-space: nowrap;
+}
+.scrim-l { background: linear-gradient(90deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 48%, transparent 100%); }
+.scrim-b { background: linear-gradient(0deg, var(--bg) 2%, color-mix(in srgb, var(--bg) 40%, transparent) 42%, transparent 100%); }
+
+/* ── Custom-visual frame (shared shell for SVG/CSS product mocks) ── */
+.vframe {
+  width: 460px; padding: 24px; border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--hair); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 16px; font-family: var(--font-body);
+}
+.vtitle { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; color: var(--fg); }
+.vmeta { font-size: 12.5px; color: var(--fg-faint); }
+
+/* ── Motion utilities ────────────────────────────────────────────────
+   Auto-play entrances + interaction helpers. For presenter-driven BUILDS
+   (reveal one element per click), use Slidev's own `v-click` / `v-clicks` /
+   `v-motion` in the slide markup — these classes are the always-on layer
+   underneath. Everything here is disabled under prefers-reduced-motion. */
+
+/* Entrances — play on mount; use for the first beat of a slide */
+.fade-up { animation: fadeUp 0.9s var(--ease) both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+.rise { animation: rise 0.8s var(--ease-spring) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(40px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.blur-in { animation: blurIn 1s var(--ease) both; }
+@keyframes blurIn { from { opacity: 0; filter: blur(14px); } to { opacity: 1; filter: blur(0); } }
+
+/* Kinetic heading — stagger the direct children in (wrap words/lines in spans) */
+.kinetic > * { display: inline-block; animation: rise 0.7s var(--ease-spring) both; }
+.kinetic > *:nth-child(2) { animation-delay: 0.07s } .kinetic > *:nth-child(3) { animation-delay: 0.14s }
+.kinetic > *:nth-child(4) { animation-delay: 0.21s } .kinetic > *:nth-child(5) { animation-delay: 0.28s }
+.kinetic > *:nth-child(6) { animation-delay: 0.35s }
+
+/* SVG line draw-in — put on a <path>/<polyline> that has pathLength="1" */
+.draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.6s var(--ease) 0.2s forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+/* Bars / meters that grow from their baseline */
+.grow { transform-origin: bottom; animation: grow 0.9s var(--ease-spring) both; }
+@keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+/* Sheen — a light sweep across a card on hover (card needs position:relative) */
+.sheen { position: relative; overflow: hidden; }
+.sheen::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.10) 48%, transparent 64%);
+  transform: translateX(-120%); transition: transform 0.8s var(--ease);
+}
+.sheen:hover::after { transform: translateX(120%); }
+
+/* Lift — float a card toward the viewer on hover, with an accent glow */
+.lift { transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.lift:hover { transform: translateY(-6px); box-shadow: var(--shadow), var(--glow); }
+
+/* Respect reduced-motion — kill ambient + entrance motion, keep final states */
+@media (prefers-reduced-motion: reduce) {
+  *, .stage::before, .fade-up, .rise, .blur-in, .kinetic > *, .draw, .grow {
+    animation: none !important; transition: none !important;
+  }
+  .draw { stroke-dashoffset: 0; }
+}
+
+/* ── Hide Slidev's default nav cluster — the custom dock replaces it */
+#slide-container > div:not(#slide-content) { display: none !important; }
+.slidev-controls, .slidev-drawing-controls { font-family: var(--font-body); }
+.noir-scroll::-webkit-scrollbar { width: 0; height: 0; }
+.noir-scroll { scrollbar-width: none; }

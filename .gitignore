@@ -1,0 +1,10 @@
+# dependencies / build output (the assets are a template; these appear once Bolt runs it)
+node_modules/
+dist/
+.slidev/
+*.log
+
+# os / editor
+.DS_Store
+.vscode/
+.idea/
