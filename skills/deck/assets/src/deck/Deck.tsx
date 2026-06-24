@@ -182,9 +182,9 @@ export default function Deck({ children }: { children: ReactNode }) {
             <div className="noir-counter"><span className="noir-counter-now">{slide + 1}</span><span className="noir-counter-tot">/ {total}</span></div>
             <button className="noir-icon-btn" title="Next" disabled={!hasNext} onClick={next}><IconRight /></button>
             <span className="noir-sep" />
-            <button className={'noir-icon-btn' + (drawing ? ' on' : '')} title="Draw (D)" onClick={() => setDrawing((v) => !v)}><IconPencil /></button>
+            <button className={'noir-icon-btn noir-optional' + (drawing ? ' on' : '')} title="Draw (D)" onClick={() => setDrawing((v) => !v)}><IconPencil /></button>
             <button className="noir-icon-btn" title="Fullscreen (F)" onClick={toggleFs}>{fs ? <IconShrink /> : <IconExpand />}</button>
-            <button className={'noir-icon-btn' + (presenter ? ' on' : '')} title="Presenter (P)" onClick={togglePresenter}><IconPresent /></button>
+            <button className={'noir-icon-btn noir-optional' + (presenter ? ' on' : '')} title="Presenter (P)" onClick={togglePresenter}><IconPresent /></button>
           </div>
         </div>
       </div>

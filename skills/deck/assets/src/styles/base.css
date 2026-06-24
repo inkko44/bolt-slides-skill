@@ -219,6 +219,22 @@ strong { font-weight: 600; color: var(--fg); }
 @keyframes dash { to { stroke-dashoffset: 0; } }
 @keyframes bargrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 
+/* ── Responsive controls — declutter the dock on touch / small screens ─
+   On touch there's no hover, so keep the dock fully visible; on phones,
+   shrink it and drop the presenter-only tools (draw + presenter overlay). */
+@media (hover: none) { .noir-dock { opacity: 1; } }
+@media (max-width: 640px) {
+  .noir-dock { opacity: 1; bottom: 14px; }
+  .noir-bar { gap: 2px; padding: 6px 7px; }
+  .noir-icon-btn { width: 34px; height: 34px; font-size: 17px; }
+  .noir-icon-btn.sm { width: 28px; height: 28px; }
+  .noir-counter { padding: 0 8px; }
+  .noir-counter-now { font-size: 15px; }
+  .noir-sep { margin: 0 2px; }
+  .noir-optional { display: none; }
+  .noir-rail { width: min(248px, 84vw); }
+}
+
 /* ── Reduced motion ─────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .slide-stage, .slide::before, .lift, .marquee-track, .btile { animation: none !important; transition: none !important; }
