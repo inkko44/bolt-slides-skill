@@ -58,14 +58,16 @@ Copy `assets/` to the project root unchanged:
 ```
 package.json  vite.config.ts  tsconfig*.json  index.html   src/main.tsx
 src/App.tsx                 ← THROWAWAY. delete its slides; author the real deck.
-src/styles/tokens.css       ← edit ONLY the :root block (Step 2)
-src/styles/base.css         ← responsive base + atmosphere + motion + chrome (don't edit)
-src/deck/   Deck Slide Build Reveal DeckContext icons   ← the engine + UI. LOCKED.
-src/components/  CountUp TiltCard Marquee Bento Split StatGrid VisualDashboard
+src/Gallery.tsx             ← live component gallery (dev aid; previews every component)
+src/styles/   tokens.css (edit :root ONLY) · base.css · gallery.css   ← don't edit base/gallery
+src/deck/   Deck Slide Build Reveal DeckContext useInView icons Annotator   ← engine + UI. LOCKED.
+src/components/  CountUp TiltCard Marquee Bento Split StatGrid VisualDashboard Accordion
+                Comparison Tabs Timeline CodeWindow BrowserFrame SpotlightCard Charts
 ```
 
-`npm install && npm run dev` runs it. Verify the dock + thumbnail rail appear, arrow
-keys advance slides + reveal builds, then build the real deck.
+`npm install && npm run dev` runs it: `/` opens the **component gallery**, `#deck` is
+the **deck demo**. Verify the gallery + the dock/rail/builds work, then author the real
+deck in `App.tsx` (view it at `#deck`).
 
 ---
 
@@ -86,18 +88,33 @@ of `base.css`. Derive from the brand when given.
 Compose slides in `App.tsx`. The building blocks:
 
 - **`<Slide>`** — one slide. `center` for cover/statement/quote/CTA; `full` for
-  edge-to-edge; `nav="Label"`; `notes="…"` (shown in the presenter overlay).
+  edge-to-edge; `nav="Label"`; `notes="…"` (editable in the presenter overlay).
 - **`<Split>`** — text + edge-to-edge media (`flip` swaps). media = `<img>`, a color
-  panel, or `<TiltCard><VisualX/></TiltCard>`.
+  panel, a `<BrowserFrame>`, or `<TiltCard><VisualX/></TiltCard>`.
 - **`<Bento>`** — asymmetric tile grid; tiles take `c`/`r` spans + `variant`.
 - **`<StatGrid>`** — responsive proof cards; pass a `<CountUp>` as a stat `value`.
+- **`<Comparison>`** — us-vs-them feature matrix; one column highlighted in the accent.
+- **`<Tabs>`** — tabbed content with a sliding accent pill.
+- **`<Accordion>`** — expand/collapse panels (FAQ, feature detail).
+- **`<Timeline>`** — vertical roadmap that draws its connector + milestones in.
+- **`<CodeWindow>`** — macOS code window with line numbers + line highlight.
+- **`<BrowserFrame>`** — browser chrome around a screenshot / full-bleed app mock
+  (fill it edge-to-edge — a real-looking app screen, not a floating card).
+- **`<SpotlightCard>`** — card with a cursor-follow accent glow (Linear/Vercel hover).
+- **Charts** — `<BarChart>` / `<LineChart>` / `<DonutChart>`, all draw-in on view.
 - **Atoms** (CSS classes): `.display .headline .lead .subhead .kicker .figure
   .accent-text .rule`. All fluid (`clamp()`).
 
 **Compose like the web, not like slideware** (same discipline as the other skills):
-full-bleed, asymmetric, layered; `Bento`/`Split` over a centered row of equal cards;
-oversized type with one accent word; vary the rhythm so no two adjacent slides share
-a shape; one idea per slide; open on a cover, close on a CTA.
+full-bleed, layered; `Bento`/`Split` over a centered row of equal cards; oversized type
+with one accent word; vary the rhythm so no two adjacent slides share a shape; one idea
+per slide; open on a cover, close on a CTA.
+
+> **Centering rule:** left-aligned/asymmetric layouts need a **side visual** (a `Split`,
+> an image, a `BrowserFrame`). A **text-only** section anchored left reads as off-center
+> — center those: a centered heading over a centered content block (e.g.
+> `marginInline:'auto'`). `Comparison`, `Tabs`, `Timeline`, `Accordion`, `StatGrid` look
+> best centered unless paired with a side visual.
 
 ### Interactivity: click-builds (the signature)
 Reveal content in beats with **`<Build at={n}>`** — it stays hidden until you advance
@@ -151,22 +168,25 @@ gradient scrim (no text in images). A `Split` or full-bleed image beats a floati
 ## Step 6 — Motion (with restraint)
 
 `Build` (click reveals), `Reveal` (on-enter entrance), `CountUp` (hero figures),
-`VisualDashboard` (draws itself in), `TiltCard` (one hero visual), `Marquee` (logo
-strip). The ambient background (drifting spotlights + grain + vignette) and the
-slide-change transition are automatic. **One or two motion ideas per slide**, never a
-circus. All honors `prefers-reduced-motion`.
+`VisualDashboard` / `Timeline` / the charts (draw themselves in on view via the
+`useInView` hook), `TiltCard` + `SpotlightCard` (cursor interaction), `Marquee` (logo
+strip), `Tabs` (sliding pill). The ambient background (drifting spotlights + grain +
+vignette) and the slide-change transition are automatic. **One or two motion ideas per
+slide**, never a circus. All honors `prefers-reduced-motion`.
 
 ---
 
 ## Extend the system — invent new slides, components & visuals
 
-The kit is a **floor, not a ceiling.** Author new section components and visuals for
-the topic — a `<Timeline>`, `<Comparison>`, `<Pricing>`, a device mock. Only the
-token *names* and `src/deck/` (engine + chrome) are off-limits to rewrite; **adding**
-components/visuals is encouraged. Every new piece must: use `var(--…)` tokens only
-(no raw hex), compose like a web section, be responsive (work on mobile), animate
-with `Reveal`/`Build` + honor reduced-motion, use tabular figures, and add **no new
-dependencies** (plain React + CSS + SVG — hand-build, it looks more bespoke).
+The kit is a **floor, not a ceiling.** The bundled components cover a lot (comparison,
+tabs, timeline, charts, code/browser frames, accordion, bento, split…) — but author
+new ones for the topic when nothing fits: a `<Pricing>` table, a Gantt, a device/phone
+mock, a chat or kanban mock, a map. Only the token *names* and `src/deck/` (engine +
+chrome) are off-limits to rewrite; **adding** components/visuals is encouraged — and
+drop a `<Swatch>`/`<Frame>` into `src/Gallery.tsx` to preview each. Every new piece
+must: use `var(--…)` tokens only (no raw hex), compose like a web section, be responsive
+(work on mobile), animate with `Reveal`/`Build`/`useInView` + honor reduced-motion, use
+tabular figures, and add **no new dependencies** (plain React + CSS + SVG).
 
 ---
 
@@ -184,9 +204,10 @@ talking points where useful.
 ## Definition of done (self-check)
 
 - [ ] The engine + chrome are **identical** to the bundled `src/deck/` assets; the
-      dock + thumbnail rail appear, arrow keys advance slides AND reveal builds,
-      auto-play / fullscreen / overview / presenter / draw work, the URL hash tracks
-      the slide.
+      dock + thumbnail rail appear, arrow keys advance AND step back through builds,
+      auto-play / fullscreen / overview work, annotation (D) has full tools and
+      persists per slide, presenter (P) opens a synced new tab, `H` hides the UI, and
+      the URL hash tracks the slide.
 - [ ] The deck is **authored, not reskinned** — topic, structure, copy, names are the
       user's, with no starter leftovers (no "Title"/"Northwind").
 - [ ] If a brand/URL was given, `--primary`, fonts, and logo come from that brand.

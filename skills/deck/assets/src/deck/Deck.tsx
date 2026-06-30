@@ -2,15 +2,15 @@ import { Children, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import type { ReactElement, ReactNode } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { DeckCtx } from './DeckContext'
+import Annotator, { type Stroke } from './Annotator'
 import { IconGrid, IconLeft, IconRight, IconPencil, IconExpand, IconShrink, IconPresent, IconClose, IconAuto } from './icons'
 
 /* ── The paged presentation engine + the Slidev-style chrome (dock + rail).
-   Wrap your <Slide>/<Bento>/<Split>/… in <Deck>. Each top-level child is one
-   slide. Advance with the dock, click, or keyboard:
+   Wrap your <Slide>/<Bento>/… in <Deck>. Each top-level child is one slide.
      → / ↓ / Space   next (reveals the next <Build>, then the next slide)
      ← / ↑           previous            O overview    F fullscreen
-     Home / End      first / last        D draw        P presenter
-     A               auto-play (builds stagger in on load instead of on click)
+     Home / End      first / last        D draw        P presenter (new tab)
+     A  auto-play    H  hide/show the UI
    <Deck autoplay>   starts in auto mode; <Deck stagger={0.16}> tunes the gap.
    Copy verbatim; theme only via the :root tokens. ───────────────────────── */
 
@@ -38,67 +38,79 @@ function Thumb({ children }: { children: ReactNode }) {
   )
 }
 
-function DrawCanvas() {
-  const ref = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const c = ref.current
-    if (!c) return
-    const ctx = c.getContext('2d')
-    if (!ctx) return
-    const resize = () => { c.width = window.innerWidth; c.height = window.innerHeight }
-    resize()
-    const color = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#4fe5b0'
-    let drawing = false
-    const down = (e: PointerEvent) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.clientX, e.clientY) }
-    const move = (e: PointerEvent) => {
-      if (!drawing) return
-      ctx.lineTo(e.clientX, e.clientY); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke()
-    }
-    const up = () => { drawing = false }
-    c.addEventListener('pointerdown', down); c.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up); window.addEventListener('resize', resize)
-    return () => { c.removeEventListener('pointerdown', down); c.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('resize', resize) }
-  }, [])
-  return <canvas ref={ref} className="noir-draw" />
-}
-
 export default function Deck({ children, autoplay = false, stagger = 0.16 }: { children: ReactNode; autoplay?: boolean; stagger?: number }) {
   const slides = useMemo(() => Children.toArray(children) as ReactElement[], [children])
   const total = slides.length
+  const isPresenter = useMemo(() => new URLSearchParams(window.location.search).has('presenter'), [])
 
-  const [slide, setSlide] = useState(0)
+  const [slide, setSlide] = useState(() => {
+    const h = parseInt(window.location.hash.slice(1), 10)
+    return h >= 1 && h <= total ? h - 1 : 0
+  })
   const [clicks, setClicks] = useState(0)
   const [curMax, setCurMax] = useState(0)
   const [auto, setAuto] = useState(autoplay)
   const [railOpen, setRailOpen] = useState(false)
   const [drawing, setDrawing] = useState(false)
-  const [presenter, setPresenter] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [fs, setFs] = useState(false)
+  const [uiHidden, setUiHidden] = useState(false)
+  const [nearDock, setNearDock] = useState(false)
+  const [cursorIdle, setCursorIdle] = useState(false)
+  const [noteOverrides, setNoteOverrides] = useState<Record<number, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('deck:notes') || '{}') } catch { return {} }
+  })
 
-  const registerMax = useCallback((at: number) => setCurMax((m) => Math.max(m, at)), [])
+  // per-slide build maxima (so going back restores the right click state) and
+  // per-slide annotations (so drawings persist on the slide they were made).
+  const maxMap = useRef<Record<number, number>>({})
+  const annStore = useRef<Record<number, Stroke[]>>({})
+  const slideRef = useRef(slide)
+  slideRef.current = slide
 
-  const go = useCallback((i: number) => { setSlide(Math.max(0, Math.min(total - 1, i))); setClicks(0); setCurMax(0) }, [total])
+  const registerMax = useCallback((at: number) => {
+    const m = maxMap.current
+    m[slideRef.current] = Math.max(m[slideRef.current] || 0, at)
+    setCurMax((c) => Math.max(c, at))
+  }, [])
+
+  const go = useCallback((i: number) => {
+    const n = Math.max(0, Math.min(total - 1, i))
+    setSlide(n); setClicks(0); setCurMax(maxMap.current[n] || 0)
+  }, [total])
   const next = useCallback(() => {
     if (!auto && clicks < curMax) { setClicks(clicks + 1); return }
-    if (slide < total - 1) { setSlide(slide + 1); setClicks(0); setCurMax(0) }
+    if (slide < total - 1) { const n = slide + 1; setSlide(n); setClicks(0); setCurMax(maxMap.current[n] || 0) }
   }, [auto, clicks, curMax, slide, total])
   const prev = useCallback(() => {
     if (!auto && clicks > 0) { setClicks(clicks - 1); return }
-    if (slide > 0) { setSlide(slide - 1); setClicks(auto ? 0 : 9999); setCurMax(0) }
+    if (slide > 0) { const n = slide - 1; const m = auto ? 0 : (maxMap.current[n] || 0); setSlide(n); setClicks(m); setCurMax(m) }
   }, [auto, clicks, slide])
 
   const toggleFs = useCallback(() => {
     if (document.fullscreenElement) document.exitFullscreen()
     else document.documentElement.requestFullscreen?.()
   }, [])
-  const togglePresenter = useCallback(() => setPresenter((v) => !v), [])
   const toggleAuto = useCallback(() => setAuto((v) => !v), [])
+  const setNote = useCallback((text: string) => {
+    setNoteOverrides((prev) => {
+      const nextO = { ...prev, [slideRef.current]: text }
+      try { localStorage.setItem('deck:notes', JSON.stringify(nextO)) } catch { /* ignore */ }
+      return nextO
+    })
+  }, [])
+  const openPresenter = useCallback(() => {
+    if (isPresenter) return
+    const url = window.location.pathname + '?presenter=1' + window.location.hash
+    window.open(url, 'deck-presenter')
+  }, [isPresenter])
 
   // keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.isContentEditable)) return
       switch (e.key) {
         case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown': e.preventDefault(); next(); break
         case 'ArrowLeft': case 'ArrowUp': case 'PageUp': e.preventDefault(); prev(); break
@@ -107,56 +119,84 @@ export default function Deck({ children, autoplay = false, stagger = 0.16 }: { c
         case 'o': case 'O': setRailOpen((v) => !v); break
         case 'f': case 'F': toggleFs(); break
         case 'd': case 'D': setDrawing((v) => !v); break
-        case 'p': case 'P': togglePresenter(); break
+        case 'p': case 'P': openPresenter(); break
         case 'a': case 'A': toggleAuto(); break
-        case 'Escape': setRailOpen(false); setDrawing(false); break
+        case 'h': case 'H': setUiHidden((v) => !v); break
+        case 'Escape': setRailOpen(false); setDrawing(false); setUiHidden(false); break
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [next, prev, go, total, toggleFs, togglePresenter, toggleAuto])
+  }, [next, prev, go, total, toggleFs, toggleAuto, openPresenter])
 
-  // URL hash sync
+  // URL hash sync (initial slide comes from the hash via useState above)
+  useEffect(() => { const want = String(slide + 1); if (window.location.hash.slice(1) !== want) history.replaceState(null, '', '#' + want) }, [slide])
   useEffect(() => {
-    const h = parseInt(location.hash.slice(1), 10)
-    if (h >= 1 && h <= total) setSlide(h - 1)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  useEffect(() => { const want = String(slide + 1); if (location.hash.slice(1) !== want) history.replaceState(null, '', '#' + want) }, [slide])
-  useEffect(() => {
-    const onHash = () => { const h = parseInt(location.hash.slice(1), 10); if (h >= 1 && h <= total && h - 1 !== slide) go(h - 1) }
+    const onHash = () => { const h = parseInt(window.location.hash.slice(1), 10); if (h >= 1 && h <= total && h - 1 !== slide) go(h - 1) }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [slide, total, go])
 
-  // fullscreen + presenter timer
+  // cross-tab sync (audience ⇄ presenter), via BroadcastChannel
+  const chan = useRef<BroadcastChannel | null>(null)
+  const applyingRemote = useRef(false)
+  useEffect(() => {
+    const c = new BroadcastChannel('deck-sync')
+    chan.current = c
+    c.onmessage = (e) => {
+      if (e.data?.type === 'state') { applyingRemote.current = true; setSlide(e.data.slide); setClicks(e.data.clicks); setAuto(e.data.auto) }
+    }
+    return () => c.close()
+  }, [])
+  useEffect(() => {
+    if (applyingRemote.current) { applyingRemote.current = false; return }
+    chan.current?.postMessage({ type: 'state', slide, clicks, auto })
+  }, [slide, clicks, auto])
+
+  // fullscreen flag, presenter timer, idle auto-hide
   useEffect(() => { const h = () => setFs(!!document.fullscreenElement); document.addEventListener('fullscreenchange', h); return () => document.removeEventListener('fullscreenchange', h) }, [])
   useEffect(() => {
-    if (!presenter) return
+    if (!isPresenter) return
     setElapsed(0)
     const t = setInterval(() => setElapsed((e) => e + 1), 1000)
     return () => clearInterval(t)
-  }, [presenter])
+  }, [isPresenter])
+  // mouse-driven only: keyboard nav keeps the UI hidden; the dock returns when
+  // the pointer nears the bottom (where it lives); the cursor hides on idle.
+  useEffect(() => {
+    let t = 0
+    const onMove = (e: MouseEvent) => {
+      setCursorIdle(false)
+      setNearDock(e.clientY > window.innerHeight - 150)
+      clearTimeout(t); t = window.setTimeout(() => setCursorIdle(true), 2600)
+    }
+    window.addEventListener('mousemove', onMove)
+    return () => { clearTimeout(t); window.removeEventListener('mousemove', onMove) }
+  }, [])
 
   const liveCtx = useMemo(() => ({ clicks, isStatic: false, auto, stagger, registerMax }), [clicks, auto, stagger, registerMax])
   const hasPrev = auto ? slide > 0 : (slide > 0 || clicks > 0)
   const hasNext = auto ? slide < total - 1 : (slide < total - 1 || clicks < curMax)
   const notes = (slides[slide]?.props as { notes?: string } | undefined)?.notes
+  const noteText = noteOverrides[slide] ?? notes ?? ''
   const nextSlide = slides[slide + 1]
+  const hideUI = uiHidden || (fs && !nearDock)
+  const cursorHidden = fs && cursorIdle && !drawing
+  const showAnnotator = drawing || (annStore.current[slide]?.length ?? 0) > 0
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="deck">
+      <div className={'deck' + (cursorHidden ? ' nocursor' : '')}>
         <DeckCtx.Provider value={liveCtx}>
           <div className="slide-stage" key={slide}>{slides[slide]}</div>
         </DeckCtx.Provider>
 
-        {drawing && <DrawCanvas key={slide} />}
+        {showAnnotator && <Annotator key={slide} slide={slide} store={annStore.current} active={drawing} />}
 
         <aside className={'noir-rail' + (railOpen ? ' open' : '')}>
           <div className="noir-rail-head">
             <span className="noir-rail-title">Slides</span>
-            <button className="noir-icon-btn sm" title="Close" onClick={() => setRailOpen(false)}><IconClose /></button>
+            <button className="noir-icon-btn sm" data-tip="Close" onClick={() => setRailOpen(false)}><IconClose /></button>
           </div>
           <div className="noir-rail-list">
             {railOpen && slides.map((s, i) => (
@@ -168,29 +208,30 @@ export default function Deck({ children, autoplay = false, stagger = 0.16 }: { c
           </div>
         </aside>
 
-        {presenter && (
+        {isPresenter && (
           <div className="noir-presenter">
             <div className="noir-presenter-row">
               <span className="noir-presenter-label">Presenter · {slide + 1} / {total}</span>
               <span className="noir-presenter-timer">{fmt(elapsed)}</span>
             </div>
             {nextSlide && <div className="noir-presenter-next"><Thumb>{nextSlide}</Thumb></div>}
-            <div className="noir-presenter-notes">{notes}</div>
+            <textarea className="noir-presenter-notes" value={noteText} spellCheck={false} placeholder={'No notes — type here, or add notes="…" in code.'} onChange={(e) => setNote(e.target.value)} />
+            <div className="noir-presenter-hint">Notes you type are saved on this device.</div>
           </div>
         )}
 
-        <div className="noir-dock">
+        <div className={'noir-dock' + (hideUI ? ' hidden' : '')}>
           <div className="noir-bar">
-            <button className={'noir-icon-btn' + (railOpen ? ' on' : '')} title="Overview (O)" onClick={() => setRailOpen((v) => !v)}><IconGrid /></button>
+            <button className={'noir-icon-btn' + (railOpen ? ' on' : '')} data-tip="Overview (O)" onClick={() => setRailOpen((v) => !v)}><IconGrid /></button>
             <span className="noir-sep" />
-            <button className="noir-icon-btn" title="Previous" disabled={!hasPrev} onClick={prev}><IconLeft /></button>
+            <button className="noir-icon-btn" data-tip="Previous" disabled={!hasPrev} onClick={prev}><IconLeft /></button>
             <div className="noir-counter"><span className="noir-counter-now">{slide + 1}</span><span className="noir-counter-tot">/ {total}</span></div>
-            <button className="noir-icon-btn" title="Next" disabled={!hasNext} onClick={next}><IconRight /></button>
+            <button className="noir-icon-btn" data-tip="Next" disabled={!hasNext} onClick={next}><IconRight /></button>
             <span className="noir-sep" />
-            <button className={'noir-icon-btn' + (auto ? ' on' : '')} title="Auto-play builds (A)" onClick={toggleAuto}><IconAuto /></button>
-            <button className={'noir-icon-btn noir-optional' + (drawing ? ' on' : '')} title="Draw (D)" onClick={() => setDrawing((v) => !v)}><IconPencil /></button>
-            <button className="noir-icon-btn" title="Fullscreen (F)" onClick={toggleFs}>{fs ? <IconShrink /> : <IconExpand />}</button>
-            <button className={'noir-icon-btn noir-optional' + (presenter ? ' on' : '')} title="Presenter (P)" onClick={togglePresenter}><IconPresent /></button>
+            <button className={'noir-icon-btn' + (auto ? ' on' : '')} data-tip="Auto-play (A)" onClick={toggleAuto}><IconAuto /></button>
+            <button className={'noir-icon-btn noir-optional' + (drawing ? ' on' : '')} data-tip="Annotate (D)" onClick={() => setDrawing((v) => !v)}><IconPencil /></button>
+            <button className="noir-icon-btn" data-tip={fs ? 'Exit fullscreen (F)' : 'Fullscreen (F)'} onClick={toggleFs}>{fs ? <IconShrink /> : <IconExpand />}</button>
+            <button className="noir-icon-btn noir-optional" data-tip="Presenter — new tab (P)" onClick={openPresenter}><IconPresent /></button>
           </div>
         </div>
       </div>

@@ -1,0 +1,40 @@
+/* Component gallery — a scrollable dev surface (the deck's body is overflow:hidden,
+   so the gallery owns its own fixed, scrolling viewport). Uses the same tokens. */
+.gx {
+  position: fixed; inset: 0; overflow-y: auto;
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  padding: 40px clamp(20px, 5vw, 80px) 96px;
+}
+.gx-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.gx-title { font-family: var(--font-head); font-size: clamp(28px, 4vw, 44px); font-weight: 600; letter-spacing: -0.03em; }
+.gx-sub { color: var(--fg-faint); font-size: 14.5px; margin-top: 6px; }
+.gx-sub code { font-family: var(--font-mono); color: var(--fg-muted); }
+.gx-link { color: var(--primary); text-decoration: none; font-size: 14px; font-weight: 600; padding: 9px 15px; border: 1px solid var(--hair); border-radius: 999px; white-space: nowrap; transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.gx-link:hover { background: var(--surface); border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
+
+.gx-section { margin-top: 44px; }
+.gx-section > h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--fg-faint); margin: 0 0 18px; font-weight: 600; }
+
+.gx-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 22px; }
+.gx-grid > * { grid-column: span 2; }      /* default: 3 per row */
+.gx-half { grid-column: span 3 !important; } /* 2 per row */
+.gx-wide { grid-column: span 6 !important; } /* full row */
+@media (max-width: 1000px) {
+  .gx-grid { grid-template-columns: repeat(2, 1fr); }
+  .gx-grid > * { grid-column: span 1; }
+  .gx-half, .gx-wide { grid-column: span 2 !important; }
+}
+@media (max-width: 640px) {
+  .gx-grid { grid-template-columns: 1fr; }
+  .gx-grid > *, .gx-half, .gx-wide { grid-column: 1 / -1 !important; }
+}
+
+.gx-card { background: var(--surface); border: 1px solid var(--hair); border-radius: var(--radius); overflow: hidden; }
+.gx-frame { position: relative; overflow: hidden; background: var(--bg); }
+.gx-scale { position: absolute; top: 0; left: 0; transform-origin: top left; pointer-events: none; }
+.gx-label { font-size: 12.5px; color: var(--fg-muted); padding: 11px 16px; border-top: 1px solid var(--hair-2); font-family: var(--font-mono); }
+
+.gx-swatch { display: flex; flex-direction: column; }
+.gx-swatch-body { flex: 1; min-height: 190px; display: flex; align-items: center; justify-content: center; padding: 28px; overflow: hidden; }
+
+.gx-pill { padding: 10px 16px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--hair); font-size: 14px; color: var(--fg-muted); text-align: center; }
