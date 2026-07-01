@@ -6,9 +6,9 @@ description: >-
   (floating glass dock + thumbnail rail + click-builds + presenter) but slides are
   RESPONSIVE React (reflow to any screen, no fixed canvas) and fully interactive.
   Use this for a deck you'll PRESENT (talk over, projector, screen-share) when you
-  want web interactivity and responsiveness without Slidev's constraints. Scaffolds
-  by COPYING the bundled app in assets/ verbatim, then AUTHORS an original deck from
-  the user's real topic/brand.
+  want web interactivity and responsiveness without Slidev's constraints. The repo
+  IS the running app (Vite + React) — you install it in place, theme the tokens, and
+  AUTHOR an original deck from the user's real topic/brand.
 ---
 
 # Slides — a premium, responsive, React presentation engine for Bolt
@@ -20,9 +20,10 @@ thumbnail rail + click-builds + presenter) and adds real web interactivity.
 
 Two halves — keep them separate:
 
-- **The engine + UI are pre-built** — `assets/` is a complete app: the paged engine,
-  the dock/rail chrome, the section components, the shared CSS. **Copy it verbatim.
-  Never regenerate it.** This is the part you liked; it must look/behave identically.
+- **The engine + UI are pre-built** — this repo is a complete, runnable app: the paged
+  engine (`src/deck/`), the dock/rail chrome, the section components (`src/components/`),
+  the shared CSS. **Leave the engine as-is. Never regenerate it.** This is the part you
+  liked; it must look/behave identically.
 - **The content is authored fresh, every time** — the slides (topic, structure, copy,
   visuals, theme) are designed from scratch for *this* request.
 
@@ -31,9 +32,9 @@ Two halves — keep them separate:
 
 ## ⛔ Two hard rules
 
-1. **Copy `assets/` byte-for-byte** — everything in `src/deck/` (the engine + chrome:
-   `Deck`, `Slide`, `Build`, `Reveal`, `DeckContext`, `icons`), the components, and
-   both CSS files. Don't retype or paraphrase the engine or the chrome.
+1. **Don't touch the engine** — leave `src/deck/` (the engine + chrome: `Deck`, `Slide`,
+   `Build`, `Reveal`, `DeckContext`, `icons`, `Annotator`, `useInView`) untouched. Don't
+   rewrite or paraphrase the engine or the chrome; author *around* it.
 2. **Author the deck from the user's REAL input — do not reskin the starter.**
    `src/App.tsx` is a throwaway that only proves it runs. **Delete its slides and
    write a new deck.** Never reuse its order, copy, placeholders, or fake names.
@@ -49,9 +50,10 @@ palette, or **STOP and ask**. Report which colors/fonts you used and where from.
 
 ---
 
-## Step 1 — Scaffold (copy the bundled app)
+## Step 1 — Run it in place (the repo is the app)
 
-Copy `assets/` to the project root unchanged:
+The repo root is already a complete Vite + React app — no scaffolding or copying. Its
+layout:
 
 ```
 package.json  vite.config.ts  tsconfig*.json  index.html   src/main.tsx
@@ -200,7 +202,7 @@ talking points where useful.
 
 ## Definition of done (self-check)
 
-- [ ] The engine + chrome are **identical** to the bundled `src/deck/` assets; the
+- [ ] The engine + chrome in `src/deck/` are **left untouched**; the
       dock + thumbnail rail appear, arrow keys advance AND step back through builds,
       auto-play / fullscreen / overview work, annotation (D) has full tools and
       persists per slide, presenter (P) opens a synced new tab, `H` hides the UI, and

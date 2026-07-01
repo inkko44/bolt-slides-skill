@@ -4,31 +4,31 @@ A Bolt skill that builds a premium, **responsive React presentation deck** — c
 paged slides you present one at a time, with a Slidev-style floating dock + thumbnail
 rail, click-builds, auto-play, annotation, and presenter mode — but each slide is a
 responsive web layout (no fixed canvas, no clipping) built from a rich component
-library. Follows the Agent Skills `skills/*/SKILL.md` convention.
+library.
 
 ## The skill
 
-- **[`skills/slides/`](./skills/slides)** — `SKILL.md` (the authoring guide) + `assets/`,
-  a complete Vite + React app: the paged engine + chrome, ~14 components (Bento, Split,
-  StatGrid, Comparison, Tabs, Accordion, Timeline, CodeWindow, BrowserFrame,
-  SpotlightCard, charts, CountUp, TiltCard, Marquee, …), and the token-driven theme.
-  `assets/` is copied verbatim; only the `:root` token block and the slides themselves
-  are authored per deck.
+This repo **is** the running app. The authoring guide lives at
+[`.bolt/skills/slides.md`](./.bolt/skills/slides.md); the app itself sits at the repo
+root — a complete Vite + React deck: the paged engine + chrome (`src/deck/`), ~14
+components (`src/components/`: Bento, Split, StatGrid, Comparison, Tabs, Accordion,
+Timeline, CodeWindow, BrowserFrame, SpotlightCard, charts, CountUp, TiltCard,
+Marquee, …), and the token-driven theme (`src/styles/`). The engine is left as-is;
+only the `:root` token block and the slides in `src/App.tsx` are authored per deck.
 
 ## Add it in Bolt
 
 1. In Bolt's **Add skill from GitHub**, paste this repo's URL —
    `https://github.com/inkko44/bolt-slides-skill`.
-2. The `slides` skill auto-discovers at `skills/slides/SKILL.md`.
+2. The `slides` skill auto-discovers at `.bolt/skills/slides.md`.
 3. Tell Bolt to use the `slides` skill and build a deck about your topic/brand.
 
 ## Run it locally
 
 ```bash
-cd skills/slides/assets
 npm install
 npm run dev
 ```
 
 `npm run dev` opens the deck at `/`. Re-theme everything by editing one `:root` block
-in `assets/src/styles/tokens.css`.
+in `src/styles/tokens.css`.
